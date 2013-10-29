@@ -8,7 +8,8 @@ var WIDTH = 20,
     COUNTS = CANVAS_WIDTH / WIDTH - 1, 
     START_X = CANVAS_WIDTH / 2 - WIDTH,
     START_Y = 0,
-    VELOCITY_Y = 2, 
+    VELOCITY_X = 0,
+    VELOCITY_Y = 1, 
     GRID = {},
     COMPOSITE = { 
         COMPOSITE_1: [[[-1, -1], [0, -1], [-1, 0]]], //Sqaure
@@ -20,6 +21,10 @@ var WIDTH = 20,
     BLOCKS_HASH = {},
     FLOOR_MIN = null,
     CONTEXT = null,
+    KEY_LEFT = 37,
+    KEY_RIGHT = 39,
+    KEY_DOWN = 40,
+    KEY_SPACE = 32,
     PREFIX = 'COMPOSITE_',
     FLOOR_PREFIX = 'FLOOR_',
     IS_END = false
@@ -75,7 +80,7 @@ function generateComposite() {
 }
 
 function updateBlockHeader(block_header) {
-    var x = block_header.x,
+    var x = block_header.x + VELOCITY_X,
         y = block_header.y + VELOCITY_Y,
         floor = Math.floor((y + HEIGHT) / HEIGHT),
         index = Math.floor(x / WIDTH),
@@ -214,8 +219,47 @@ function render() {
         render()
     })
 }
+
+function handleEvent(type, code) {
+    switch (code) {
+        case KEY_LEFT:
+            VELOCITY_X = type === 'keydown' ? - WIDTH : 0
+            break
+
+        case KEY_RIGHT:
+            VELOCITY_X = type === 'keydown' ? WIDTH : 0
+            break
+
+        case KEY_DOWN:
+            VELOCITY_Y = type === 'keydown' ? 5 : 2 
+            break
+
+        case KEY_SPACE:
+
+            break
+
+        default:
+            break
+    }
+}
+
+function bindEvent() {
+
+    ['keydown', 'keyup'].forEach(function (keyevent){
+        document.addEventListener(keyevent, function (e) {
+
+            var code = e.keyCode || e.which
+                type = e.type
+
+            handleEvent(type, code)
+        })
+    })
+
+}
     
 function main() {
+    bindEvent();
+
     var canvas = document.getElementById('stage')
 
     canvas.width  = CANVAS_WIDTH
