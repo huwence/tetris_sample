@@ -74,12 +74,15 @@ function generateComposite() {
 
 }
 
-function updateBlockHeader(block_header) {
-    var x = block_header.x,
+function updateCompositeHeader(blocks) {
+    setCompsoiteBounding(blocks);
+
+    var block_header = blocks[0],
+        x = block_header.x,
         y = block_header.y + VELOCITY_Y,
-        floor = Math.floor((y + HEIGHT) / HEIGHT),
-        index = Math.floor(x / WIDTH),
-        grid, 
+        left = block_header.left,
+        right = block_header.right,
+        floor, index, grid, 
         is_collision = false
 
     if (CANVAS_HEIGHT - HEIGHT < y) {
@@ -89,6 +92,17 @@ function updateBlockHeader(block_header) {
         is_collision = true
         generateComposite()
     }
+
+    if (0 > left) {
+        x = x + WIDTH 
+    }
+
+    if (CANVAS_WIDTH < right) {
+        x = x - WIDTH
+    }
+
+    floor = Math.floor((y + HEIGHT) / HEIGHT)
+    index = Math.floor(x / WIDTH)
 
     grid = GRID[FLOOR_PREFIX + floor]
 
@@ -111,12 +125,24 @@ function updateBlockHeader(block_header) {
     return is_collision
 }
 
+function setCompositeBounding(blocks) {
+    var left = 0, right = 0
+
+    for (var i = 0, l = blocks.length; i < l; i ++) {
+        left = Math.min(left, blocks[i].x)
+        right = Math.max(right, blocks[i].x + WIDTH)
+    }
+
+    blocks[0].left = left
+    blocks[0].right = right
+}
+
 //type = 1, 2, 3, 4
 function updateComposite(blocks, feature) {
     if (!blocks.length)
         return
 
-    var is_collision = updateBlockHeader(blocks[0]),
+    var is_collision = updateCompositeHeader(blocks),
         composite = COMPOSITE[PREFIX + feature[0]][feature[1]],
         floor, index
 
