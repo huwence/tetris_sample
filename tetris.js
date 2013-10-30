@@ -80,14 +80,17 @@ function generateComposite() {
 }
 
 function updateCompositeHeader(blocks) {
-    setCompsoiteBounding(blocks);
 
-    var x = block_header.x + VELOCITY_X,
+    var block_header = blocks[0],
+        x = block_header.x + VELOCITY_X,
         y = block_header.y + VELOCITY_Y,
-        left = block_header.left,
-        right = block_header.right,
         floor, index, grid, 
         is_collision = false
+
+    setCompositeBounding(blocks, x, x + WIDTH)
+
+    var left = block_header.left,
+        right = block_header.right
 
     if (CANVAS_HEIGHT - HEIGHT < y) {
         delete block_header.feature
@@ -100,7 +103,7 @@ function updateCompositeHeader(blocks) {
     if (0 > left) {
         x = x + WIDTH 
     }
-
+     
     if (CANVAS_WIDTH < right) {
         x = x - WIDTH
     }
@@ -129,8 +132,9 @@ function updateCompositeHeader(blocks) {
     return is_collision
 }
 
-function setCompositeBounding(blocks) {
-    var left = 0, right = 0
+function setCompositeBounding(blocks, left, right) {
+    var left = left || blocks[0].x, 
+        right = right || (blocks[0].x + WIDTH)
 
     for (var i = 0, l = blocks.length; i < l; i ++) {
         left = Math.min(left, blocks[i].x)
@@ -256,7 +260,7 @@ function handleEvent(type, code) {
             break
 
         case KEY_DOWN:
-            VELOCITY_Y = type === 'keydown' ? 5 : 2 
+            VELOCITY_Y = type === 'keydown' ? 5 : 1 
             break
 
         case KEY_SPACE:
