@@ -21,6 +21,7 @@ var WIDTH = 20,
     BLOCKS_HASH = {},
     FLOOR_MIN = null,
     CONTEXT = null,
+    CURRENT_BLOCK_HEADER = null,
     KEY_LEFT = 37,
     KEY_RIGHT = 39,
     KEY_DOWN = 40,
@@ -41,6 +42,16 @@ function Block(guid, x, y, width, height, color) {
 Block.prototype.draw = function (ctx) {
     ctx.fillStyle = this.color
     ctx.fillRect(this.x, this.y, this.width, this.height)
+}
+
+Block.prototype.updateShape = function () {
+    if (!this.feature)
+        return
+
+    var composites = COMPOSITE[PREFIX + this.feature[0]],
+        shape = this.feature[1] + 1
+
+    this.feature[1] = shape >= composites.length ? 0 : shape
 }
 
 function getGuid() {
@@ -77,20 +88,19 @@ function generateComposite() {
         BLOCKS_HASH[guid] = block
     }
 
+    CURRENT_BLOCK_HEADER = block_header
 }
 
 function updateCompositeHeader(blocks) {
+    setCompositeBounding(blocks)
 
     var block_header = blocks[0],
         x = block_header.x + VELOCITY_X,
         y = block_header.y + VELOCITY_Y,
+        left = block_header.left + VELOCITY_X,
+        right = block_header.right + VELOCITY_X, 
         floor, index, grid, 
         is_collision = false
-
-    setCompositeBounding(blocks, x, x + WIDTH)
-
-    var left = block_header.left,
-        right = block_header.right
 
     if (CANVAS_HEIGHT - HEIGHT < y) {
         delete block_header.feature
@@ -103,7 +113,7 @@ function updateCompositeHeader(blocks) {
     if (0 > left) {
         x = x + WIDTH 
     }
-     
+
     if (CANVAS_WIDTH < right) {
         x = x - WIDTH
     }
@@ -132,11 +142,11 @@ function updateCompositeHeader(blocks) {
     return is_collision
 }
 
-function setCompositeBounding(blocks, left, right) {
-    var left = left || blocks[0].x, 
-        right = right || (blocks[0].x + WIDTH)
+function setCompositeBounding(blocks) {
+    var left = blocks[0].x, 
+        right = blocks[0].x + WIDTH
 
-    for (var i = 0, l = blocks.length; i < l; i ++) {
+    for (var i = 1, l = blocks.length; i < l; i ++) {
         left = Math.min(left, blocks[i].x)
         right = Math.max(right, blocks[i].x + WIDTH)
     }
@@ -264,7 +274,7 @@ function handleEvent(type, code) {
             break
 
         case KEY_SPACE:
-
+            CURRENT_BLOCK_HEADER.updateShape()
             break
 
         default:
