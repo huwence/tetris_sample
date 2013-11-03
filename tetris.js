@@ -1,15 +1,16 @@
-var WIDTH = 20,
+var FPS = 30,
+    INTERVAL = 1000 / FPS,
+    WIDTH = 20,
     HEIGHT = WIDTH,
     CANVAS_WIDTH = 320,
     CANVAS_HEIGHT = 400,
-    LEN = 3,
-    NUM = 4,
     FLOORS = CANVAS_HEIGHT / HEIGHT - 1,
-    COUNTS = CANVAS_WIDTH / WIDTH - 1, 
+    COUNTS = CANVAS_WIDTH / WIDTH, 
     START_X = CANVAS_WIDTH / 2 - WIDTH,
     START_Y = 0,
     VELOCITY_X = 0,
-    VELOCITY_Y = 1, 
+    VELOCITY_Y_STEP = 3, 
+    VELOCITY_Y_RAW = VELOCITY_Y = 4, 
     GRID = {},
     COMPOSITE = { 
         COMPOSITE_1: [[[-1, -1], [0, -1], [-1, 0]]], //Sqaure
@@ -28,7 +29,8 @@ var WIDTH = 20,
     KEY_SPACE = 32,
     PREFIX = 'COMPOSITE_',
     FLOOR_PREFIX = 'FLOOR_',
-    IS_END = false
+    IS_END = false,
+    START = null
 
 function Block(guid, x, y, width, height, color) {
     this.guid = guid
@@ -54,11 +56,12 @@ Block.prototype.updateShape = function () {
     this.feature[1] = shape >= composites.length ? 0 : shape
 }
 
-function getGuid() {
-    var now = +new Date(),
+function getGuid(seed) {
+    var seed = seed || 0,
+        now = +new Date(),
         random = Math.random().toString().split('.')[1] + ''
 
-    return Number(random.substring(16) + now).toString(32)
+    return Number(seed + random.substring(16) + now).toString(32)
 }
 
 function generateComposite() {
@@ -80,8 +83,8 @@ function generateComposite() {
     BLOCKS.push(block_header)
     BLOCKS_HASH[block_header_guid] = block_header
 
-    for (var i = 0; i < LEN; i ++) {
-        var guid = getGuid(),
+    for (var i = 0; i < 3; i ++) {
+        var guid = getGuid(i),
             block = new Block(guid, START_X + composite[i][0] * WIDTH, START_Y + composite[i][1] * HEIGHT, WIDTH, HEIGHT) 
 
         BLOCKS.push(block)
@@ -91,68 +94,22 @@ function generateComposite() {
     CURRENT_BLOCK_HEADER = block_header
 }
 
-function updateCompositeHeader(blocks) {
-    setCompositeBounding(blocks)
+function getGridPosition(x, y) {
+    var col = Math.floor(x / WIDTH),
+        row = Math.floor((y + HEIGHT) / HEIGHT)
 
-    var block_header = blocks[0],
-        x = block_header.x + VELOCITY_X,
-        y = block_header.y + VELOCITY_Y,
-        left = block_header.left + VELOCITY_X,
-        right = block_header.right + VELOCITY_X, 
-        floor, index, grid, 
-        is_collision = false
-
-    if (CANVAS_HEIGHT - HEIGHT < y) {
-        delete block_header.feature
-
-        y = CANVAS_HEIGHT - HEIGHT
-        is_collision = true
-        generateComposite()
-    }
-
-    if (0 > left) {
-        x = x + WIDTH 
-    }
-
-    if (CANVAS_WIDTH < right) {
-        x = x - WIDTH
-    }
-
-    floor = Math.floor((y + HEIGHT) / HEIGHT)
-    index = Math.floor(x / WIDTH)
-
-    grid = GRID[FLOOR_PREFIX + floor]
-
-    if (grid && grid.items[index]) {
-        delete block_header.feature
-
-        generateComposite()
-        x = index * WIDTH 
-        y = (floor - 1) * HEIGHT
-        is_collision = true
-
-        if (0 === floor - 1) {
-            IS_END = true
-        }
-    }
-
-    block_header.x = x
-    block_header.y = y
-
-    return is_collision
+    return {row: row, col: col}
 }
 
-function setCompositeBounding(blocks) {
-    var left = blocks[0].x, 
-        right = blocks[0].x + WIDTH
+function getGridCollision(row, col) {
+    var is_collision = false,
+        floor = GRID[FLOOR_PREFIX + row]
 
-    for (var i = 1, l = blocks.length; i < l; i ++) {
-        left = Math.min(left, blocks[i].x)
-        right = Math.max(right, blocks[i].x + WIDTH)
+    if (row > FLOORS || (floor && floor.items[col]) || col < 0 || col > COUNTS) {
+        is_collision = true
     }
 
-    blocks[0].left = left
-    blocks[0].right = right
+    return is_collision
 }
 
 //type = 1, 2, 3, 4
@@ -160,62 +117,96 @@ function updateComposite(blocks, feature) {
     if (!blocks.length)
         return
 
-    var is_collision = updateCompositeHeader(blocks),
-        composite = COMPOSITE[PREFIX + feature[0]][feature[1]],
-        floor, index
-
     if (IS_END)
         return
 
-    for (var i = 0, l = blocks.length; i < l; i ++) {
+    var header_x = blocks[0].x + VELOCITY_X,
+        header_y = blocks[0].y + VELOCITY_Y,
+        composite = COMPOSITE[PREFIX + feature[0]][feature[1]],
+        pos, is_collision, is_bottom_collision, delta_x, delta_y
 
-        if (i != 0) {
-            blocks[i].x = blocks[0].x + composite[i - 1][0] * WIDTH
-            blocks[i].y = blocks[0].y + composite[i - 1][1] * HEIGHT
+    for (var i = 0, l = blocks.length; i < l; i ++) {
+        delta_x = i == 0 ? 0 : composite[i - 1][0] * WIDTH
+        delta_y = i == 0 ? 0 : composite[i - 1][1] * HEIGHT
+        current_x = header_x + delta_x
+        current_y = header_y + delta_y
+        pos = getGridPosition(current_x, current_y)
+        is_collision = getGridCollision(pos.row, pos.col)
+
+        //collision
+        if (is_collision) {
+            var block_pos = getGridPosition(blocks[i].x, blocks[i].y)
+            
+            if (block_pos.row == pos.row) { //left or right collision
+                is_bottom_collision = false
+
+                current_x = (pos.col + 1) * WIDTH
+                blocks[0].x = current_x - delta_x
+            } else if (block_pos.col == pos.col) { //bottom collision
+                is_bottom_collision = true
+                blocks[0].y = (pos.row - 1) * HEIGHT - delta_y
+            }
+
         }
 
-        if (is_collision) {
-            index = Math.floor(blocks[i].x / WIDTH)
-            floor = Math.floor(blocks[i].y  / HEIGHT)
-            con = GRID[FLOOR_PREFIX + floor]
+        blocks[i].x = current_x
+        blocks[i].y = current_y
+    }
 
-            con.items[index] = blocks[i].guid
-            con.num += 1
+    drawComposite(blocks, composite)
+
+    if (is_bottom_collision) {
+        delete blocks[0].feature
+        setGridStatus(blocks)
+        generateComposite()
+    }
+}
+
+function setGridStatus(blocks) {
+    for (var i = 0, l = blocks.length; i < l; i ++) {
+        var pos = getGridPosition(blocks[i].x, blocks[i].y)
+            floor = GRID[FLOOR_PREFIX + (pos.row - 1)],
+            items = floor.items
+
+        items[pos.col] = blocks[i].guid
+
+        if (++ floor.num === COUNTS) {
+                setGridItems(items)
+        }
+    }
+}
+
+function drawComposite(blocks, composite_params) {
+    for (var i = 0, l = blocks.length; i < l; i ++) {
+        if (i != 0) {
+            blocks[i].x = blocks[0].x + composite_params[i - 1][0] * WIDTH
+            blocks[i].y = blocks[0].y + composite_params[i - 1][1] * HEIGHT
         }
 
         blocks[i].draw(CONTEXT)
     }
 }
 
-function updateGrid(blocks) {
-    FLOOR_MIN = null
+function setGridItems(items) {
+    if (!items)
+        return
 
-    for (var i = 0, l = blocks.length; i < l; i ++) {
-        var floor = Math.floor(blocks[i].y / HEIGHT),
-            index = Math.floor(blocks[i].x / WIDTH),
-            content = GRID[FLOOR_PREFIX + floor]
-
-        content.items[index] = blocks[i].guid
-        content.num += 1
-
-        if (content.num === COUNTS) {
-            for (var j = 0, k = content.items.length; j < k; j ++) {
-                FLOOR_MIN = Math.min(FLOOR_MIN, floor)
-                BLOCKS_HASH[content.items[j]].flag = 1
-            }
-        }
+    for (var i = 0, l = items.length; i < l; i ++) {
+        BLOCKS_HASH[items[i]].flag = 1
     }
 
 }
 
 function update() {
+    CONTEXT.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
     if (BLOCKS.length === 0) {
         generateComposite()
     }
 
     for (var i = 0, l = BLOCKS.length; i < l; i ++) {
         var block = BLOCKS[i],
-            floor = block.y % HEIGHT
+            y_index = Math.floor((block.y + HEIGHT) / HEIGHT),
             flag = block.flag,
             feature = block.feature
 
@@ -225,13 +216,13 @@ function update() {
             continue
         }
 
-        if (FLOOR_MIN && floor < FLOOR_MIN) {
+        if (FLOOR_MIN && y_index < FLOOR_MIN) {
             block.y += HEIGHT
         }
 
         if (feature) {
             updateComposite([block, BLOCKS[i + 1], BLOCKS[i + 2], BLOCKS[i + 3]], feature)
-            i += NUM
+            i += 4
         } else {
             block.draw(CONTEXT)
         }
@@ -253,28 +244,39 @@ function requestFrame(callback) {
 
 function render() {
     requestFrame(function () {
-        CONTEXT.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-        update()
+        var now = +new Date(),
+            delta = now - START
+
+        if (delta >= INTERVAL) {
+            update()
+            START = +new Date()
+        }
+
         render()
     })
 }
 
 function handleEvent(type, code) {
+    var is_key_down = type === 'keydown'
+
     switch (code) {
         case KEY_LEFT:
-            VELOCITY_X = type === 'keydown' ? - WIDTH : 0
+            VELOCITY_X = is_key_down ? - WIDTH : 0
             break
 
         case KEY_RIGHT:
-            VELOCITY_X = type === 'keydown' ? WIDTH : 0
+            VELOCITY_X = is_key_down ? WIDTH : 0
             break
 
         case KEY_DOWN:
-            VELOCITY_Y = type === 'keydown' ? 5 : 1 
+            VELOCITY_Y = is_key_down ? VELOCITY_Y_RAW + VELOCITY_Y_STEP : VELOCITY_Y_RAW 
             break
 
         case KEY_SPACE:
-            CURRENT_BLOCK_HEADER.updateShape()
+            if (is_key_down) {
+                CURRENT_BLOCK_HEADER.updateShape()
+            }
+
             break
 
         default:
@@ -313,6 +315,7 @@ function main() {
     }
 
     CONTEXT = canvas.getContext('2d')
+    START = +new Date()
     render()
 }
 
