@@ -57,7 +57,7 @@ Block.prototype.updateShape = function () {
 }
 
 function getGuid(seed) {
-    var seed = seed || 0,
+    var seed = seed || 999, 
         now = +new Date(),
         random = Math.random().toString().split('.')[1] + ''
 
@@ -84,7 +84,7 @@ function generateComposite() {
     BLOCKS_HASH[block_header_guid] = block_header
 
     for (var i = 0; i < 3; i ++) {
-        var guid = getGuid(i),
+        var guid = getGuid(i + 1),
             block = new Block(guid, START_X + composite[i][0] * WIDTH, START_Y + composite[i][1] * HEIGHT, WIDTH, HEIGHT) 
 
         BLOCKS.push(block)
@@ -105,14 +105,13 @@ function getGridCollision(row, col) {
     var is_collision = false,
         floor = GRID[FLOOR_PREFIX + row]
 
-    if (row > FLOORS || (floor && floor.items[col]) || col < 0 || col > COUNTS) {
+    if (row > FLOORS || (floor && floor.items[col]) || col < 0 || col > COUNTS - 1) {
         is_collision = true
     }
 
     return is_collision
 }
 
-//type = 1, 2, 3, 4
 function updateComposite(blocks, feature) {
     if (!blocks.length)
         return
@@ -123,39 +122,38 @@ function updateComposite(blocks, feature) {
     var header_x = blocks[0].x + VELOCITY_X,
         header_y = blocks[0].y + VELOCITY_Y,
         composite = COMPOSITE[PREFIX + feature[0]][feature[1]],
-        pos, is_collision, is_bottom_collision, delta_x, delta_y
+        pos, is_collision_x, is_collision_y, delta_x, delta_y
 
     for (var i = 0, l = blocks.length; i < l; i ++) {
         delta_x = i == 0 ? 0 : composite[i - 1][0] * WIDTH
         delta_y = i == 0 ? 0 : composite[i - 1][1] * HEIGHT
         current_x = header_x + delta_x
         current_y = header_y + delta_y
-        pos = getGridPosition(current_x, current_y)
-        is_collision = getGridCollision(pos.row, pos.col)
 
-        //collision
-        if (is_collision) {
-            var block_pos = getGridPosition(blocks[i].x, blocks[i].y)
-            
-            if (block_pos.row == pos.row) { //left or right collision
-                is_bottom_collision = false
+        pos_y = getGridPosition(blocks[i].x, current_y)
+        is_collision_y = getGridCollision(pos_y.row, pos_y.col)
 
-                current_x = (pos.col + 1) * WIDTH
-                blocks[0].x = current_x - delta_x
-            } else if (block_pos.col == pos.col) { //bottom collision
-                is_bottom_collision = true
-                blocks[0].y = (pos.row - 1) * HEIGHT - delta_y
-            }
-
+        if (is_collision_y) {
+            current_y = (pos_y.row - 1) * HEIGHT
+            blocks[0].y = current_y - delta_y
+            break
         }
 
+        pos_x = getGridPosition(current_x, blocks[i].y)
+        is_collision_x = getGridCollision(pos_x.row, pos_x.col)
+
+        if (is_collision_x) {
+            current_x = blocks[i].x
+            blocks[0].x = current_x - delta_x
+        }
+        
         blocks[i].x = current_x
         blocks[i].y = current_y
     }
 
     drawComposite(blocks, composite)
 
-    if (is_bottom_collision) {
+    if (is_collision_y) {
         delete blocks[0].feature
         setGridStatus(blocks)
         generateComposite()
