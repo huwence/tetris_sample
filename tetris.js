@@ -11,7 +11,7 @@ var FPS = 30,
     VELOCITY_X = 0,
     VELOCITY_Y_STEP = 3, 
     VELOCITY_Y_RAW = VELOCITY_Y = 4, 
-    GRID = {},
+    GRID = [],
     COMPOSITE = { 
         COMPOSITE_1: [[[-1, -1], [0, -1], [-1, 0]]], //Sqaure
         COMPOSITE_2: [[[0, -1], [0, -2], [0, -3]], [[1, 0], [2, 0], [3, 0]]], //Rect
@@ -103,9 +103,9 @@ function getGridPosition(x, y) {
 
 function getGridCollision(row, col) {
     var is_collision = false,
-        floor = GRID[FLOOR_PREFIX + row]
+        floor = GRID[row]
 
-    if (row > FLOORS || (floor && floor.items[col]) || col < 0 || col > COUNTS - 1) {
+    if (row > FLOORS || (floor && floor[col]) || col < 0 || col > COUNTS - 1) {
         is_collision = true
     }
 
@@ -163,13 +163,19 @@ function updateComposite(blocks, feature) {
 function setGridStatus(blocks) {
     for (var i = 0, l = blocks.length; i < l; i ++) {
         var pos = getGridPosition(blocks[i].x, blocks[i].y)
-            floor = GRID[FLOOR_PREFIX + (pos.row - 1)],
-            items = floor.items
+            floor = GRID[pos.row - 1]
 
-        items[pos.col] = blocks[i].guid
+        if (!floor) {
+            IS_END = true
+            return
+        }
 
-        if (++ floor.num === COUNTS) {
-                setGridItems(items)
+        floor[pos.col] = blocks[i].guid
+
+        if (floor.toString().indexOf(',') === -1) {
+            setGridItems()
+            GRID.splice(floor, 1)
+            GRID.splice(0, 1, new Array(COUNTS))
         }
     }
 }
@@ -212,10 +218,6 @@ function update() {
             BLOCKS.splice(i, 1)
             -- l
             continue
-        }
-
-        if (FLOOR_MIN && y_index < FLOOR_MIN) {
-            block.y += HEIGHT
         }
 
         if (feature) {
@@ -306,10 +308,7 @@ function main() {
     canvas.style.background = '#000'
 
     for (var i = 0; i <= FLOORS; i ++) {
-        GRID[FLOOR_PREFIX + i] = {
-            'items': new Array(COUNTS),
-            'num': 0
-        } 
+        GRID[i] = new Array(COUNTS);
     }
 
     CONTEXT = canvas.getContext('2d')
