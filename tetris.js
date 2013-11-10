@@ -12,15 +12,13 @@ var FPS = 30,
     VELOCITY_Y_STEP = 3, 
     VELOCITY_Y_RAW = VELOCITY_Y = 4, 
     GRID = [],
+    BLOCKS = [],
     COMPOSITE = { 
         COMPOSITE_1: [[[-1, -1], [0, -1], [-1, 0]]], //Sqaure
         COMPOSITE_2: [[[0, -1], [0, -2], [0, -3]], [[1, 0], [2, 0], [3, 0]]], //Rect
         COMPOSITE_3: [[[0, -1], [1, 0], [-1, 0]], [[0, -1], [0, -2], [1, -1]], [[-1, -1], [0, -1], [1, -1]], [[0, -2], [0, -1], [-1, -1]]],
         COMPOSITE_4: [[[0, -1], [0, -2], [1, 0]], [[0, -1], [1, -1], [2, -1]], [[0, -1], [0, -2], [-1, -2]], [[0, -1], [-1, 0], [-2, 0]]]
     },
-    BLOCKS = [],
-    BLOCKS_HASH = {},
-    FLOOR_MIN = null,
     CONTEXT = null,
     CURRENT_BLOCK_HEADER = null,
     KEY_LEFT = 37,
@@ -32,8 +30,7 @@ var FPS = 30,
     IS_END = false,
     START = null
 
-function Block(guid, x, y, width, height, color) {
-    this.guid = guid
+function Block(x, y, width, height, color) {
     this.x = x
     this.y = y
     this.width  = width
@@ -56,19 +53,11 @@ Block.prototype.updateShape = function () {
     this.feature[1] = shape >= composites.length ? 0 : shape
 }
 
-function getGuid(seed) {
-    var seed = seed || 999, 
-        now = +new Date(),
-        random = Math.random().toString().split('.')[1] + ''
-
-    return Number(seed + random.substring(16) + now).toString(32)
-}
-
 function generateComposite() {
     if (IS_END)
         return
 
-    var type = Math.ceil(Math.random() * 4),
+    var type = Math.ceil(Math.random() * 4)
         composites = COMPOSITE[PREFIX + type]
 
     if (!composites)
@@ -76,19 +65,15 @@ function generateComposite() {
 
     var shape = Math.round(Math.random() * (composites.length - 1)),
         composite = composites[shape],
-        block_header_guid = getGuid(),
-        block_header = new Block(block_header_guid, START_X, START_Y, WIDTH, HEIGHT, 'blue')
+        block_header = new Block(START_X, START_Y, WIDTH, HEIGHT, 'blue')
         block_header.feature = [type, shape]
 
     BLOCKS.push(block_header)
-    BLOCKS_HASH[block_header_guid] = block_header
 
     for (var i = 0; i < 3; i ++) {
-        var guid = getGuid(i + 1),
-            block = new Block(guid, START_X + composite[i][0] * WIDTH, START_Y + composite[i][1] * HEIGHT, WIDTH, HEIGHT) 
+        var block = new Block(START_X + composite[i][0] * WIDTH, START_Y + composite[i][1] * HEIGHT, WIDTH, HEIGHT) 
 
         BLOCKS.push(block)
-        BLOCKS_HASH[guid] = block
     }
 
     CURRENT_BLOCK_HEADER = block_header
@@ -105,7 +90,7 @@ function getGridCollision(row, col) {
     var is_collision = false,
         floor = GRID[row]
 
-    if (row > FLOORS || (floor && floor[col]) || col < 0 || col > COUNTS - 1) {
+    if (row > FLOORS || (floor && floor.blocks[col]) || col < 0 || col > COUNTS - 1) {
         is_collision = true
     }
 
@@ -161,8 +146,10 @@ function updateComposite(blocks, feature) {
 }
 
 function setGridStatus(blocks) {
+    var down_rows = []
+
     for (var i = 0, l = blocks.length; i < l; i ++) {
-        var pos = getGridPosition(blocks[i].x, blocks[i].y)
+        var pos = getGridPosition(blocks[i].x, blocks[i].y),
             floor = GRID[pos.row - 1]
 
         if (!floor) {
@@ -170,13 +157,47 @@ function setGridStatus(blocks) {
             return
         }
 
-        floor[pos.col] = blocks[i].guid
+        floor.blocks[pos.col] = blocks[i]
 
-        if (floor.toString().indexOf(',') === -1) {
-            setGridItems()
-            GRID.splice(floor, 1)
-            GRID.splice(0, 1, new Array(COUNTS))
+        if (++ floor.count === COUNTS) {
+            down_rows.push(pos.row - 1)
         }
+    }
+
+    setBlocksFlag(down_rows)
+}
+
+function setBlocksFlag(rows) {
+    if (!rows.length)
+        return
+
+    var max_row = rows[0],
+        blocks
+
+    for (var i = 0, l = rows.length; i < l; i ++) {
+        max_row = Math.max(max_row, rows[i])
+    }
+
+    blocks = GRID[max_row].blocks
+
+    for (var i = 0, l = blocks.length; i < l; i ++) {
+        var cal_row = max_row, 
+            pos = getGridPosition(blocks[i].x, blocks[i].y),
+            floor
+
+        while ((floor = GRID[-- cal_row]) && floor.blocks[pos.col]) {
+            floor.blocks[pos.col].step = rows.length
+        }
+    }
+
+    for (var i = 0, l = rows.length; i < l; i ++) {
+        blocks = GRID[rows[i]].blocks
+        for (var j = 0, k = blocks.length; j < k; j ++) {
+            blocks[j].flag = 1
+        }
+
+        GRID.splice(rows[i], 1)
+        GRID.unshift({blocks: new Array(COUNTS), count: 0})
     }
 }
 
@@ -191,16 +212,6 @@ function drawComposite(blocks, composite_params) {
     }
 }
 
-function setGridItems(items) {
-    if (!items)
-        return
-
-    for (var i = 0, l = items.length; i < l; i ++) {
-        BLOCKS_HASH[items[i]].flag = 1
-    }
-
-}
-
 function update() {
     CONTEXT.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
@@ -210,22 +221,29 @@ function update() {
 
     for (var i = 0, l = BLOCKS.length; i < l; i ++) {
         var block = BLOCKS[i],
-            y_index = Math.floor((block.y + HEIGHT) / HEIGHT),
+            pos = getGridPosition(block.x, block.y)
             flag = block.flag,
+            step = block.step,
             feature = block.feature
-
-        if (flag) {
-            BLOCKS.splice(i, 1)
-            -- l
-            continue
-        }
 
         if (feature) {
             updateComposite([block, BLOCKS[i + 1], BLOCKS[i + 2], BLOCKS[i + 3]], feature)
             i += 4
         } else {
+            if (flag) {
+                BLOCKS.splice(i, 1)
+                -- l
+                continue
+            } 
+
+            if (step) {
+                BLOCKS[i].y += step * HEIGHT
+                delete BLOCKS[i].step
+            }
+
             block.draw(CONTEXT)
         }
+
     }
 }
 
@@ -308,7 +326,7 @@ function main() {
     canvas.style.background = '#000'
 
     for (var i = 0; i <= FLOORS; i ++) {
-        GRID[i] = new Array(COUNTS);
+        GRID[i] = {blocks: new Array(COUNTS), count: 0};
     }
 
     CONTEXT = canvas.getContext('2d')
