@@ -195,8 +195,13 @@ function setBlocksFlag(rows) {
         for (var j = 0, k = blocks.length; j < k; j ++) {
             blocks[j].flag = 1
         }
+    }
 
+    for (var i = 0, l = rows.length; i < l; i ++) {
         GRID.splice(rows[i], 1)
+    }
+
+    for (var i = 0, l = rows.length; i < l; i ++) {
         GRID.unshift({blocks: new Array(COUNTS), count: 0})
     }
 }
