@@ -171,11 +171,17 @@ function setBlocksFlag(rows) {
     if (!rows.length)
         return
 
-    var max_row = rows[0],
-        blocks
+    rows.sort(function (a, b) {
+        return a < b
+    });
+
+    var blocks, max_row = rows[rows.length - 1]
 
     for (var i = 0, l = rows.length; i < l; i ++) {
-        max_row = Math.max(max_row, rows[i])
+        blocks = GRID[rows[i]].blocks
+        for (var j = 0, k = blocks.length; j < k; j ++) {
+            blocks[j].flag = 1
+        }
     }
 
     blocks = GRID[max_row].blocks
@@ -185,15 +191,9 @@ function setBlocksFlag(rows) {
             pos = getGridPosition(blocks[i].x, blocks[i].y),
             floor
 
-        while ((floor = GRID[-- cal_row]) && floor.blocks[pos.col]) {
-            floor.blocks[pos.col].step = rows.length
-        }
-    }
-
-    for (var i = 0, l = rows.length; i < l; i ++) {
-        blocks = GRID[rows[i]].blocks
-        for (var j = 0, k = blocks.length; j < k; j ++) {
-            blocks[j].flag = 1
+        while ((floor = GRID[-- cal_row]) != undefined) {
+            if (floor.blocks[pos.col]) 
+                floor.blocks[pos.col].step = rows.length
         }
     }
 
