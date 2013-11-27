@@ -26,7 +26,6 @@ var FPS = 30,
     KEY_DOWN = 40,
     KEY_SPACE = 32,
     PREFIX = 'COMPOSITE_',
-    FLOOR_PREFIX = 'FLOOR_',
     IS_END = false,
     START = null
 
