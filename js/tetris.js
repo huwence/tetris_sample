@@ -18,18 +18,14 @@ var FPS = 30,
         COMPOSITE_2: [[[0, -1], [0, -2], [0, -3]], [[1, 0], [2, 0], [3, 0]]], //Rect
         COMPOSITE_3: [[[0, -1], [1, 0], [-1, 0]], [[0, -1], [0, -2], [1, -1]], [[-1, -1], [0, -1], [1, -1]], [[0, -2], [0, -1], [-1, -1]]],
         COMPOSITE_4: [[[0, -1], [0, -2], [1, 0]], [[0, -1], [1, -1], [2, -1]], [[0, -1], [0, -2], [-1, -2]], [[0, -1], [-1, 0], [-2, 0]]],
-        COMPOSITE_5: [[[0, -1], [1, -1], [-1, 0]], [[0, -1], [-1, -1], [-1, -2]]],
-        COMPOSITE_6: [[[0, -1], [1, -1], [1, -2]], [[1, 0], [0, -1], [-1, -1]]]
+        COMPOSITE_5: [[[0, -1], [1, -1], [-1, 0]], [[0, -1], [-1, -1], [-1, -2]], [[0, -1], [1, -1], [1, -2]], [[1, 0], [0, -1], [-1, -1]]]
     },
-    COLORS = ['#2F4F4F', '#8A2BE2', '#008B8B', '#FF9900', '#1E90FF'],
+    COLORS = ['2F4F4F', '#8A2BE2', '#008B8B', '#1E90FF'],
     CONTEXT = null,
     CURRENT_BLOCK_HEADER = null,
-    KEY_LEFT_1 = 37, 
-    KEY_LEFT_2 = 72,
-    KEY_RIGHT_1 = 39,
-    KEY_RIGHT_2 = 76,
-    KEY_DOWN_1 = 40,
-    KEY_DOWN_2 = 74,
+    KEY_LEFT = 37,
+    KEY_RIGHT = 39,
+    KEY_DOWN = 40,
     KEY_SPACE = 32,
     PREFIX = 'COMPOSITE_',
     IS_END = false,
@@ -44,12 +40,10 @@ function Block(x, y, width, height, color) {
 }
 
 Block.prototype.draw = function (ctx) {
-    ctx.beginPath()
-    ctx.rect(this.x, this.y, this.width - 1, this.height - 1)
     ctx.fillStyle  = this.color
-    ctx.fill()
-    ctx.lineWidth = .5
+    ctx.lineWidth = 1
     ctx.strokeStyle = '#fff'
+    ctx.fillRect(this.x, this.y, this.width, this.height)
     ctx.stroke()
 }
 
@@ -67,8 +61,8 @@ function generateComposite() {
     if (IS_END)
         return
 
-    var type = Math.ceil(Math.random() * 6)
-        color = COLORS[Math.floor(Math.random() * COLORS.length)]
+    var type = Math.ceil(Math.random() * 5)
+        color = Math.ceil(Math.random() * 3)
         composites = COMPOSITE[PREFIX + type]
 
     if (!composites)
@@ -118,7 +112,7 @@ function updateComposite(blocks, feature) {
     var header_x = blocks[0].x + VELOCITY_X,
         header_y = blocks[0].y + VELOCITY_Y,
         composite = COMPOSITE[PREFIX + feature[0]][feature[1]],
-        is_collision_x, is_collision_y, delta_x, delta_y
+        pos, is_collision_x, is_collision_y, delta_x, delta_y
 
     for (var i = 0, l = blocks.length; i < l; i ++) {
         delta_x = i == 0 ? 0 : composite[i - 1][0] * WIDTH
@@ -214,7 +208,6 @@ function setBlocksFlag(rows) {
 
     for (var i = 0, l = rows.length; i < l; i ++) {
         GRID.unshift({blocks: new Array(COUNTS), count: 0})
-        //GRID.splice(0, {blocks: new Array(COUNTS), count: 0})
     }
 }
 
@@ -229,26 +222,12 @@ function drawComposite(blocks, composite_params) {
     }
 }
 
-function removeEliminatedBlock() {
-    //first all clear
-    var new_blocks = []
-    for (var i = 0, l = BLOCKS.length; i < l; i ++) {
-        if (!BLOCKS[i].flag) {
-            new_blocks.push(BLOCKS[i])
-        }
-    }
-
-    BLOCKS = blocks
-}
-
 function update() {
     CONTEXT.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
     if (BLOCKS.length === 0) {
         generateComposite()
     }
-
-    removeEliminatedBlock()
 
     for (var i = 0, l = BLOCKS.length; i < l; i ++) {
         var block = BLOCKS[i],
@@ -262,6 +241,8 @@ function update() {
             i += 4
         } else {
             if (flag) {
+                BLOCKS.splice(i, 1)
+                -- l
                 continue
             } 
 
@@ -274,7 +255,6 @@ function update() {
         }
 
     }
-
 }
 
 function requestFrame(callback) {
@@ -308,15 +288,15 @@ function handleEvent(type, code) {
     var is_key_down = type === 'keydown'
 
     switch (code) {
-        case KEY_LEFT_1: case KEY_LEFT_2:
+        case KEY_LEFT:
             VELOCITY_X = is_key_down ? - WIDTH : 0
             break
 
-        case KEY_RIGHT_1: case KEY_RIGHT_2:
+        case KEY_RIGHT:
             VELOCITY_X = is_key_down ? WIDTH : 0
             break
 
-        case KEY_DOWN_1: case KEY_DOWN_2:
+        case KEY_DOWN:
             VELOCITY_Y = is_key_down ? VELOCITY_Y_RAW + VELOCITY_Y_STEP : VELOCITY_Y_RAW 
             break
 
@@ -353,6 +333,7 @@ function main() {
 
     canvas.width  = CANVAS_WIDTH
     canvas.height = CANVAS_HEIGHT
+    canvas.style.background = '#000'
 
     for (var i = 0; i <= FLOORS; i ++) {
         GRID[i] = {blocks: new Array(COUNTS), count: 0};
