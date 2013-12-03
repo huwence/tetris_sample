@@ -21,7 +21,7 @@ var FPS = 30,
         COMPOSITE_5: [[[0, -1], [1, -1], [-1, 0]], [[0, -1], [-1, -1], [-1, -2]]],
         COMPOSITE_6: [[[0, -1], [1, -1], [1, -2]], [[1, 0], [0, -1], [-1, -1]]]
     },
-    COLORS = ['#2F4F4F', '#8A2BE2', '#008B8B', '#FF9900', '#1E90FF'],
+    COLORS = ['#8A2BE2', '#008B8B', '#FF9900', '#1E90FF'],
     CONTEXT = null,
     CURRENT_BLOCK_HEADER = null,
     KEY_LEFT_1 = 37, 
