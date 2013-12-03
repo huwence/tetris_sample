@@ -28,7 +28,7 @@ START = null
 KEY_LEFT = [37, 72]
 KEY_RIGHT = [39, 76]
 KEY_DOWN = [40, 74]
-KEY_SPACE = 32
+KEY_SPACE = [32, 38]
 PREFIX = 'COMPOSITE_'
 IS_END = false
 

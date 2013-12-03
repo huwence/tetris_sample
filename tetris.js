@@ -30,7 +30,8 @@ var FPS = 30,
     KEY_RIGHT_2 = 76,
     KEY_DOWN_1 = 40,
     KEY_DOWN_2 = 74,
-    KEY_SPACE = 32,
+    KEY_SPACE_1 = 32,
+    KEY_SPACE_2 = 38,
     PREFIX = 'COMPOSITE_',
     IS_END = false,
     START = null
@@ -238,7 +239,7 @@ function removeEliminatedBlock() {
         }
     }
 
-    BLOCKS = blocks
+    BLOCKS = new_blocks
 }
 
 function update() {
@@ -320,7 +321,7 @@ function handleEvent(type, code) {
             VELOCITY_Y = is_key_down ? VELOCITY_Y_RAW + VELOCITY_Y_STEP : VELOCITY_Y_RAW 
             break
 
-        case KEY_SPACE:
+        case KEY_SPACE_1: case KEY_SPACE_2:
             if (is_key_down) {
                 CURRENT_BLOCK_HEADER.updateShape()
             }
