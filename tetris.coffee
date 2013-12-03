@@ -21,7 +21,7 @@ COMPOSITE = {
     COMPOSITE_5: [[[0, -1], [1, -1], [-1, 0]], [[0, -1], [-1, -1], [-1, -2]]],
     COMPOSITE_6: [[[0, -1], [1, -1], [1, -2]], [[1, 0], [0, -1], [-1, -1]]]
 }
-COLORS = ['#2F4F4F', '#8A2BE2', '#008B8B', '#FF9900', '#1E90FF']
+COLORS = ['#8A2BE2', '#008B8B', '#FF9900', '#1E90FF']
 CONTEXT = null
 CURRENT_BLOCK_HEADER = null
 START = null
@@ -262,7 +262,7 @@ class Stage
             VELOCITY_X = if is_key_down then WIDTH else 0
         else if code in KEY_DOWN
             VELOCITY_Y = if is_key_down then VELOCITY_Y_RAW + VELOCITY_Y_STEP else VELOCITY_Y_RAW
-        else if code is KEY_SPACE
+        else if code in KEY_SPACE
             CURRENT_BLOCK_HEADER.updateShape() if is_key_down
 
     bindEvent: () ->
