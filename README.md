@@ -2,7 +2,7 @@ A Simple HTML5 Canvas Tetris Game
 =======
 Support coffeescript
 
-* [play] (https://github.com/huwence/tetris_sample)
+* [play] (http://huwence.github.io/tetris_sample)
 * [source] (https://github.com/huwence/tetris_sample)
 
 TODO List
