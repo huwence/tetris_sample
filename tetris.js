@@ -1,4 +1,4 @@
-var FPS = 30,
+var FPS = 12,
     INTERVAL = 1000 / FPS,
     WIDTH = 20,
     HEIGHT = WIDTH,
@@ -9,8 +9,8 @@ var FPS = 30,
     START_X = CANVAS_WIDTH / 2 - WIDTH,
     START_Y = 0,
     VELOCITY_X = 0,
-    VELOCITY_Y_STEP = 3, 
-    VELOCITY_Y_RAW = VELOCITY_Y = 4, 
+    VELOCITY_Y_STEP = 10, 
+    VELOCITY_Y_RAW = VELOCITY_Y = 5, 
     GRID = [],
     BLOCKS = [],
     COMPOSITE = { 
@@ -34,7 +34,9 @@ var FPS = 30,
     KEY_SPACE_2 = 38,
     PREFIX = 'COMPOSITE_',
     IS_END = false,
-    START = null
+    START = null,
+    SCORE_ELEMENT = document.getElementById('amount'),
+    SCORE = 0
 
 function Block(x, y, width, height, color) {
     this.x = x
@@ -232,10 +234,13 @@ function drawComposite(blocks, composite_params) {
 
 function removeEliminatedBlock() {
     //first all clear
-    var new_blocks = []
+    var new_blocks = [];
+
     for (var i = 0, l = BLOCKS.length; i < l; i ++) {
         if (!BLOCKS[i].flag) {
             new_blocks.push(BLOCKS[i])
+        } else {
+            SCORE += 1
         }
     }
 
@@ -298,6 +303,7 @@ function render() {
 
         if (delta >= INTERVAL) {
             update()
+            updateScore()
             START = +new Date()
         }
 
@@ -345,6 +351,10 @@ function bindEvent() {
         })
     })
 
+}
+
+function updateScore() {
+    SCORE_ELEMENT.innerHTML = SCORE;
 }
     
 function main() {
