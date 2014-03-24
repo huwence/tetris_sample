@@ -354,11 +354,11 @@ function bindEvent() {
 }
 
 function updateScore() {
-    SCORE_ELEMENT.innerHTML = SCORE;
+    SCORE_ELEMENT.innerHTML = SCORE
 }
     
 function main() {
-    bindEvent();
+    bindEvent()
 
     var canvas = document.getElementById('stage')
 
@@ -366,7 +366,7 @@ function main() {
     canvas.height = CANVAS_HEIGHT
 
     for (var i = 0; i <= FLOORS; i ++) {
-        GRID[i] = {blocks: new Array(COUNTS), count: 0};
+        GRID[i] = {blocks: new Array(COUNTS), count: 0}
     }
 
     CONTEXT = canvas.getContext('2d')
