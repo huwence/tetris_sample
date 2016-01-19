@@ -1,4 +1,4 @@
-var FPS = 12,
+var FPS = 6,
     INTERVAL = 1000 / FPS,
     WIDTH = 20,
     HEIGHT = WIDTH,
